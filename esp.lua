@@ -1,311 +1,163 @@
 
---==================================================
--- DX TAME BETA | RAINBOW LASER ESP FULL
--- Roblox Studio | LocalScript
---==================================================
+-- DX TAME BETA | DRAG + CIRCLE MINIMIZE
+-- Dùng trong LocalScript của Roblox Studio
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
-local localPlayer = Players.LocalPlayer
-local playerGui = localPlayer:WaitForChild("PlayerGui")
+local player = Players.LocalPlayer
+local gui = Instance.new("ScreenGui")
+gui.Name = "DXTameBeta"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
 
-local enabled = false
-local rainbowHue = 0
-local rainbowSpeed = 0.45
-local lasers = {}
-local characterConnections = {}
-local destroyed = false
+local menu = Instance.new("Frame")
+menu.Size = UDim2.fromOffset(280, 190)
+menu.Position = UDim2.new(0.5, -140, 0.5, -95)
+menu.BackgroundColor3 = Color3.fromRGB(18, 20, 32)
+menu.BorderSizePixel = 0
+menu.Active = true
+menu.Parent = gui
 
--- Xóa laser của một người chơi
-local function removeLaser(player)
-    local data = lasers[player]
-    if not data then return end
+Instance.new("UICorner", menu).CornerRadius =
+    UDim.new(0, 12)
 
-    for _, object in ipairs({
-        data.beam,
-        data.startAttachment,
-        data.endAttachment
-    }) do
-        if object then
-            object:Destroy()
-        end
-    end
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(90, 90, 255)
+stroke.Thickness = 2
+stroke.Parent = menu
 
-    lasers[player] = nil
-end
+local header = Instance.new("TextLabel")
+header.Size = UDim2.new(1, -45, 0, 42)
+header.BackgroundTransparency = 1
+header.Text = "DX TAME BETA"
+header.TextColor3 = Color3.fromRGB(120, 180, 255)
+header.Font = Enum.Font.GothamBold
+header.TextSize = 17
+header.Parent = menu
 
--- Tạo laser nối hai nhân vật
-local function createLaser(player)
-    if player == localPlayer or not enabled then
-        return
-    end
+local minimize = Instance.new("TextButton")
+minimize.Size = UDim2.fromOffset(36, 32)
+minimize.Position = UDim2.new(1, -40, 0, 5)
+minimize.BackgroundColor3 = Color3.fromRGB(45, 48, 75)
+minimize.Text = "—"
+minimize.TextColor3 = Color3.new(1, 1, 1)
+minimize.TextSize = 20
+minimize.Parent = menu
+Instance.new("UICorner", minimize).CornerRadius =
+    UDim.new(0, 8)
 
-    removeLaser(player)
+local content = Instance.new("Frame")
+content.Name = "Content"
+content.Position = UDim2.fromOffset(10, 48)
+content.Size = UDim2.new(1, -20, 1, -58)
+content.BackgroundTransparency = 1
+content.Parent = menu
 
-    local myCharacter = localPlayer.Character
-    local targetCharacter = player.Character
+local circle = Instance.new("TextButton")
+circle.Name = "OpenMenu"
+circle.Size = UDim2.fromOffset(58, 58)
+circle.Position = menu.Position
+circle.BackgroundColor3 = Color3.fromRGB(45, 55, 150)
+circle.Text = "DX"
+circle.TextColor3 = Color3.new(1, 1, 1)
+circle.Font = Enum.Font.GothamBold
+circle.TextSize = 18
+circle.Visible = false
+circle.Active = true
+circle.Parent = gui
 
-    if not myCharacter or not targetCharacter then return end
+Instance.new("UICorner", circle).CornerRadius =
+    UDim.new(1, 0)
 
-    local myRoot = myCharacter:FindFirstChild("HumanoidRootPart")
-    local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
+local circleStroke = Instance.new("UIStroke")
+circleStroke.Color = Color3.fromRGB(100, 180, 255)
+circleStroke.Thickness = 2
+circleStroke.Parent = circle
 
-    if not myRoot or not targetRoot then return end
+-- Kéo thả bằng chuột hoặc cảm ứng
+local function makeDraggable(object, dragArea)
+    local dragging = false
+    local dragInput
+    local startInput
+    local startPosition
 
-    local startAttachment = Instance.new("Attachment")
-    startAttachment.Name = "DX_TAME_LaserStart"
-    startAttachment.Parent = myRoot
+    dragArea = dragArea or object
 
-    local endAttachment = Instance.new("Attachment")
-    endAttachment.Name = "DX_TAME_LaserEnd"
-    endAttachment.Parent = targetRoot
+    dragArea.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            startInput = input.Position
+            startPosition = object.Position
 
-    local beam = Instance.new("Beam")
-    beam.Name = "DX_TAME_RainbowLaser"
-    beam.Attachment0 = startAttachment
-    beam.Attachment1 = endAttachment
-    beam.FaceCamera = true
-    beam.Width0 = 0.075
-    beam.Width1 = 0.035
-    beam.LightEmission = 1
-    beam.LightInfluence = 0
-    beam.Segments = 12
-    beam.Enabled = true
-    beam.Parent = myRoot
-
-    lasers[player] = {
-        beam = beam,
-        startAttachment = startAttachment,
-        endAttachment = endAttachment
-    }
-end
-
--- Theo dõi nhân vật hồi sinh
-local function watchPlayer(player)
-    if player == localPlayer then return end
-
-    if characterConnections[player] then
-        characterConnections[player]:Disconnect()
-    end
-
-    characterConnections[player] = player.CharacterAdded:Connect(function()
-        task.wait(1)
-
-        if enabled and not destroyed and player.Parent then
-            createLaser(player)
+            input.Changed:Connect(function()
+                if input.UserInputState ==
+                    Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
         end
     end)
 
-    if enabled then
-        createLaser(player)
-    end
-end
-
--- Bật hoặc tắt TẤT CẢ laser
-local function setLaserEnabled(state)
-    enabled = state
-
-    if enabled then
-        for _, player in ipairs(Players:GetPlayers()) do
-            watchPlayer(player)
-        end
-    else
-        for player in pairs(lasers) do
-            removeLaser(player)
-        end
-    end
-end
-
--- Giao diện
-local gui = Instance.new("ScreenGui")
-gui.Name = "DX_TAME_BETA_LASER"
-gui.ResetOnSpawn = false
-gui.DisplayOrder = 999
-gui.Parent = playerGui
-
-local panel = Instance.new("Frame")
-panel.Name = "MainPanel"
-panel.Size = UDim2.fromOffset(245, 130)
-panel.Position = UDim2.new(0.5, -122, 0.5, -65)
-panel.BackgroundColor3 = Color3.fromRGB(13, 15, 25)
-panel.BorderSizePixel = 0
-panel.Active = true
-panel.Parent = gui
-
-local panelCorner = Instance.new("UICorner")
-panelCorner.CornerRadius = UDim.new(0, 12)
-panelCorner.Parent = panel
-
-local panelStroke = Instance.new("UIStroke")
-panelStroke.Thickness = 2
-panelStroke.Parent = panel
-
-local title = Instance.new("TextLabel")
-title.Name = "Title"
-title.Size = UDim2.new(1, -20, 0, 35)
-title.Position = UDim2.fromOffset(10, 4)
-title.BackgroundTransparency = 1
-title.Text = "DX TAME BETA"
-title.TextColor3 = Color3.new(1, 1, 1)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 19
-title.Parent = panel
-
-local subtitle = Instance.new("TextLabel")
-subtitle.Size = UDim2.new(1, -20, 0, 20)
-subtitle.Position = UDim2.fromOffset(10, 37)
-subtitle.BackgroundTransparency = 1
-subtitle.Text = "RAINBOW LASER ESP"
-subtitle.TextColor3 = Color3.fromRGB(175, 180, 205)
-subtitle.Font = Enum.Font.Gotham
-subtitle.TextSize = 11
-subtitle.Parent = panel
-
-local toggle = Instance.new("TextButton")
-toggle.Name = "ToggleAllLasers"
-toggle.Size = UDim2.new(1, -24, 0, 42)
-toggle.Position = UDim2.fromOffset(12, 70)
-toggle.BackgroundColor3 = Color3.fromRGB(30, 33, 48)
-toggle.BorderSizePixel = 0
-toggle.Text = "LASER ESP : OFF"
-toggle.TextColor3 = Color3.new(1, 1, 1)
-toggle.Font = Enum.Font.GothamBold
-toggle.TextSize = 14
-toggle.Parent = panel
-
-local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(0, 8)
-toggleCorner.Parent = toggle
-
-local toggleStroke = Instance.new("UIStroke")
-toggleStroke.Thickness = 1.5
-toggleStroke.Parent = toggle
-
--- Kéo thả bảng bằng thanh tiêu đề
-local dragging = false
-local dragStart
-local startPosition
-
-title.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
+    dragArea.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement
         or input.UserInputType == Enum.UserInputType.Touch then
-
-        dragging = true
-        dragStart = input.Position
-        startPosition = panel.Position
-    end
-end)
-
-local dragEndedConnection
-
-dragEndedConnection = game:GetService("UserInputService").InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
-end)
-
-RunService.RenderStepped:Connect(function(dt)
-    if destroyed then return end
-
-    -- RGB cầu vồng liên tục
-    rainbowHue = (rainbowHue + dt * rainbowSpeed) % 1
-
-    local rainbow = Color3.fromHSV(rainbowHue, 1, 1)
-    panelStroke.Color = rainbow
-    toggleStroke.Color = rainbow
-    title.TextColor3 = rainbow
-
-    -- Dải màu cầu vồng trên từng tia
-    for player, data in pairs(lasers) do
-        if data.beam and data.beam.Parent then
-            local offset = (player.UserId % 100) / 100
-            local h = (rainbowHue + offset) % 1
-
-            data.beam.Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(
-                    0, Color3.fromHSV(h, 1, 1)
-                ),
-                ColorSequenceKeypoint.new(
-                    0.25, Color3.fromHSV((h + 0.17) % 1, 1, 1)
-                ),
-                ColorSequenceKeypoint.new(
-                    0.5, Color3.fromHSV((h + 0.34) % 1, 1, 1)
-                ),
-                ColorSequenceKeypoint.new(
-                    0.75, Color3.fromHSV((h + 0.5) % 1, 1, 1)
-                ),
-                ColorSequenceKeypoint.new(
-                    1, Color3.fromHSV((h + 0.67) % 1, 1, 1)
-                )
-            })
+            dragInput = input
         end
-    end
+    end)
 
-    -- Di chuyển bảng
-    if dragging and dragStart and startPosition then
-        local input = game:GetService("UserInputService"):GetMouseLocation()
-        local delta = input - dragStart
-
-        panel.Position = UDim2.new(
-            startPosition.X.Scale,
-            startPosition.X.Offset + delta.X,
-            startPosition.Y.Scale,
-            startPosition.Y.Offset + delta.Y
-        )
-    end
-end)
-
--- Nút bật/tắt toàn bộ laser
-toggle.Activated:Connect(function()
-    setLaserEnabled(not enabled)
-
-    if enabled then
-        toggle.Text = "LASER ESP : ON"
-        toggle.BackgroundColor3 = Color3.fromRGB(20, 70, 55)
-    else
-        toggle.Text = "LASER ESP : OFF"
-        toggle.BackgroundColor3 = Color3.fromRGB(30, 33, 48)
-    end
-end)
-
--- Người chơi mới vào / rời game
-Players.PlayerAdded:Connect(function(player)
-    watchPlayer(player)
-end)
-
-Players.PlayerRemoving:Connect(function(player)
-    removeLaser(player)
-
-    if characterConnections[player] then
-        characterConnections[player]:Disconnect()
-        characterConnections[player] = nil
-    end
-end)
-
--- Khởi tạo theo dõi nhân vật
-for _, player in ipairs(Players:GetPlayers()) do
-    watchPlayer(player)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input == dragInput
+        or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - startInput
+            object.Position = UDim2.new(
+                startPosition.X.Scale,
+                startPosition.X.Offset + delta.X,
+                startPosition.Y.Scale,
+                startPosition.Y.Offset + delta.Y
+            )
+        end
+    end)
 end
 
--- Dọn dữ liệu nếu giao diện bị xóa
-gui.Destroying:Connect(function()
-    destroyed = true
-    enabled = false
+makeDraggable(menu, header)
+makeDraggable(circle)
 
-    for player in pairs(lasers) do
-        removeLaser(player)
-    end
-
-    for player, connection in pairs(characterConnections) do
-        connection:Disconnect()
-        characterConnections[player] = nil
-    end
-
-    if dragEndedConnection then
-        dragEndedConnection:Disconnect()
-    end
+minimize.Activated:Connect(function()
+    circle.Position = menu.Position
+    menu.Visible = false
+    circle.Visible = true
 end)
 
-print("[DX TAME BETA] RAINBOW LASER ESP loaded")
+circle.Activated:Connect(function()
+    menu.Position = circle.Position
+    circle.Visible = false
+    menu.Visible = true
+end)
+
+-- Ví dụ nút ESP; thay bằng chức năng ESP hiện tại của ông
+local espButton = Instance.new("TextButton")
+espButton.Size = UDim2.new(1, 0, 0, 42)
+espButton.Position = UDim2.fromOffset(0, 8)
+espButton.BackgroundColor3 = Color3.fromRGB(35, 40, 65)
+espButton.TextColor3 = Color3.new(1, 1, 1)
+espButton.Font = Enum.Font.GothamBold
+espButton.TextSize = 14
+espButton.Text = "LASER ESP : OFF"
+espButton.Parent = content
+
+Instance.new("UICorner", espButton).CornerRadius =
+    UDim.new(0, 8)
+
+local espEnabled = false
+
+espButton.Activated:Connect(function()
+    espEnabled = not espEnabled
+    espButton.Text = espEnabled
+        and "LASER ESP : ON"
+        or "LASER ESP : OFF"
+
+    -- Kết nối espEnabled với vòng lặp laser ESP
+    -- hiện có của ông để bật/tắt hiệu ứng.
+end)
