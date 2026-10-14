@@ -1,128 +1,166 @@
 
--- DX TAME BETA | DRAG + CIRCLE MINIMIZE
--- Dùng trong LocalScript của Roblox Studio
+-- DX TAME BETA | FRUIT ESP
+-- Roblox Studio - LocalScript
+-- Menu kéo thả, nút tròn, ESP trái và khoảng cách
 
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
-local gui = Instance.new("ScreenGui")
-gui.Name = "DXTameBeta"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+local playerGui = player:WaitForChild("PlayerGui")
 
+local old = playerGui:FindFirstChild("DX_TAME_BETA")
+if old then old:Destroy() end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "DX_TAME_BETA"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+local function corner(obj, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius)
+    c.Parent = obj
+end
+
+local function outline(obj, color)
+    local s = Instance.new("UIStroke")
+    s.Color = color
+    s.Thickness = 1.5
+    s.Parent = obj
+end
+
+-- Menu
 local menu = Instance.new("Frame")
-menu.Size = UDim2.fromOffset(280, 190)
-menu.Position = UDim2.new(0.5, -140, 0.5, -95)
-menu.BackgroundColor3 = Color3.fromRGB(18, 20, 32)
+menu.Name = "Menu"
+menu.Size = UDim2.fromOffset(285, 245)
+menu.Position = UDim2.new(0.5, -142, 0.35, 0)
+menu.BackgroundColor3 = Color3.fromRGB(16, 19, 36)
 menu.BorderSizePixel = 0
 menu.Active = true
 menu.Parent = gui
+corner(menu, 12)
+outline(menu, Color3.fromRGB(105, 100, 255))
 
-Instance.new("UICorner", menu).CornerRadius =
-    UDim.new(0, 12)
-
-local stroke = Instance.new("UIStroke")
-stroke.Color = Color3.fromRGB(90, 90, 255)
-stroke.Thickness = 2
-stroke.Parent = menu
-
+-- Header
 local header = Instance.new("TextLabel")
-header.Size = UDim2.new(1, -45, 0, 42)
+header.Size = UDim2.new(1, -48, 0, 42)
+header.Position = UDim2.fromOffset(10, 0)
 header.BackgroundTransparency = 1
 header.Text = "DX TAME BETA"
-header.TextColor3 = Color3.fromRGB(120, 180, 255)
+header.TextColor3 = Color3.fromRGB(130, 175, 255)
 header.Font = Enum.Font.GothamBold
-header.TextSize = 17
+header.TextSize = 18
+header.TextXAlignment = Enum.TextXAlignment.Left
 header.Parent = menu
 
 local minimize = Instance.new("TextButton")
-minimize.Size = UDim2.fromOffset(36, 32)
-minimize.Position = UDim2.new(1, -40, 0, 5)
-minimize.BackgroundColor3 = Color3.fromRGB(45, 48, 75)
+minimize.Size = UDim2.fromOffset(34, 30)
+minimize.Position = UDim2.new(1, -40, 0, 6)
 minimize.Text = "—"
+minimize.Font = Enum.Font.GothamBold
+minimize.TextSize = 18
 minimize.TextColor3 = Color3.new(1, 1, 1)
-minimize.TextSize = 20
+minimize.BackgroundColor3 = Color3.fromRGB(49, 52, 82)
 minimize.Parent = menu
-Instance.new("UICorner", minimize).CornerRadius =
-    UDim.new(0, 8)
+corner(minimize, 8)
 
-local content = Instance.new("Frame")
-content.Name = "Content"
-content.Position = UDim2.fromOffset(10, 48)
-content.Size = UDim2.new(1, -20, 1, -58)
-content.BackgroundTransparency = 1
-content.Parent = menu
-
+-- Nút tròn
 local circle = Instance.new("TextButton")
-circle.Name = "OpenMenu"
+circle.Name = "DX_FloatingButton"
 circle.Size = UDim2.fromOffset(58, 58)
 circle.Position = menu.Position
-circle.BackgroundColor3 = Color3.fromRGB(45, 55, 150)
 circle.Text = "DX"
-circle.TextColor3 = Color3.new(1, 1, 1)
 circle.Font = Enum.Font.GothamBold
 circle.TextSize = 18
+circle.TextColor3 = Color3.new(1, 1, 1)
+circle.BackgroundColor3 = Color3.fromRGB(43, 48, 135)
 circle.Visible = false
 circle.Active = true
 circle.Parent = gui
+corner(circle, 29)
+outline(circle, Color3.fromRGB(105, 180, 255))
 
-Instance.new("UICorner", circle).CornerRadius =
-    UDim.new(1, 0)
+-- Tạo nút cài đặt
+local function makeButton(text, y)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -20, 0, 38)
+    b.Position = UDim2.fromOffset(10, y)
+    b.BackgroundColor3 = Color3.fromRGB(35, 40, 67)
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.GothamSemibold
+    b.TextSize = 13
+    b.Text = text
+    b.Parent = menu
+    corner(b, 8)
+    return b
+end
 
-local circleStroke = Instance.new("UIStroke")
-circleStroke.Color = Color3.fromRGB(100, 180, 255)
-circleStroke.Thickness = 2
-circleStroke.Parent = circle
+local espButton = makeButton("FRUIT ESP : ON", 55)
+local nameButton = makeButton("HIỆN TÊN : ON", 101)
+local distanceButton = makeButton("KHOẢNG CÁCH : ON", 147)
+
+local info = Instance.new("TextLabel")
+info.Size = UDim2.new(1, -20, 0, 32)
+info.Position = UDim2.fromOffset(10, 198)
+info.BackgroundTransparency = 1
+info.Text = "Fruit ESP | Studio"
+info.TextColor3 = Color3.fromRGB(165, 175, 205)
+info.Font = Enum.Font.Gotham
+info.TextSize = 11
+info.Parent = menu
 
 -- Kéo thả bằng chuột hoặc cảm ứng
-local function makeDraggable(object, dragArea)
+local function draggable(obj, handle)
     local dragging = false
-    local dragInput
-    local startInput
-    local startPosition
+    local startPos, startInput
+    local moved = false
 
-    dragArea = dragArea or object
-
-    dragArea.InputBegan:Connect(function(input)
+    handle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
+            moved = false
             startInput = input.Position
-            startPosition = object.Position
+            startPos = obj.Position
 
-            input.Changed:Connect(function()
-                if input.UserInputState ==
-                    Enum.UserInputState.End then
+            local ended
+            ended = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
+                    ended:Disconnect()
                 end
             end)
         end
     end)
 
-    dragArea.InputChanged:Connect(function(input)
+    UIS.InputChanged:Connect(function(input)
+        if not dragging then return end
+
         if input.UserInputType == Enum.UserInputType.MouseMovement
         or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input == dragInput
-        or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - startInput
-            object.Position = UDim2.new(
-                startPosition.X.Scale,
-                startPosition.X.Offset + delta.X,
-                startPosition.Y.Scale,
-                startPosition.Y.Offset + delta.Y
+            if math.abs(delta.X) + math.abs(delta.Y) > 5 then
+                moved = true
+            end
+
+            obj.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
             )
         end
     end)
+
+    return function()
+        return moved
+    end
 end
 
-makeDraggable(menu, header)
-makeDraggable(circle)
+local menuMoved = draggable(menu, header)
+local circleMoved = draggable(circle, circle)
 
 minimize.Activated:Connect(function()
     circle.Position = menu.Position
@@ -131,33 +169,127 @@ minimize.Activated:Connect(function()
 end)
 
 circle.Activated:Connect(function()
+    -- Khi vừa kéo nút, không mở menu ngoài ý muốn
+    if circleMoved() then return end
     menu.Position = circle.Position
     circle.Visible = false
     menu.Visible = true
 end)
 
--- Ví dụ nút ESP; thay bằng chức năng ESP hiện tại của ông
-local espButton = Instance.new("TextButton")
-espButton.Size = UDim2.new(1, 0, 0, 42)
-espButton.Position = UDim2.fromOffset(0, 8)
-espButton.BackgroundColor3 = Color3.fromRGB(35, 40, 65)
-espButton.TextColor3 = Color3.new(1, 1, 1)
-espButton.Font = Enum.Font.GothamBold
-espButton.TextSize = 14
-espButton.Text = "LASER ESP : OFF"
-espButton.Parent = content
-
-Instance.new("UICorner", espButton).CornerRadius =
-    UDim.new(0, 8)
-
-local espEnabled = false
+-- Cài đặt ESP
+local espEnabled = true
+local showName = true
+local showDistance = true
 
 espButton.Activated:Connect(function()
     espEnabled = not espEnabled
-    espButton.Text = espEnabled
-        and "LASER ESP : ON"
-        or "LASER ESP : OFF"
+    espButton.Text = espEnabled and "FRUIT ESP : ON"
+        or "FRUIT ESP : OFF"
+end)
 
-    -- Kết nối espEnabled với vòng lặp laser ESP
-    -- hiện có của ông để bật/tắt hiệu ứng.
+nameButton.Activated:Connect(function()
+    showName = not showName
+    nameButton.Text = showName and "HIỆN TÊN : ON"
+        or "HIỆN TÊN : OFF"
+end)
+
+distanceButton.Activated:Connect(function()
+    showDistance = not showDistance
+    distanceButton.Text = showDistance and "KHOẢNG CÁCH : ON"
+        or "KHOẢNG CÁCH : OFF"
+end)
+
+-- Tìm các đối tượng trái trong Workspace.
+-- Trong game thử nghiệm, đặt tên Model/Part chứa "Fruit"
+-- hoặc "Trái" để script nhận diện.
+local tracked = {}
+
+local function isFruit(obj)
+    local n = string.lower(obj.Name)
+    return string.find(n, "fruit", 1, true) ~= nil
+        or string.find(n, "trái", 1, true) ~= nil
+end
+
+local function getPart(obj)
+    if obj:IsA("BasePart") then
+        return obj
+    end
+    if obj:IsA("Model") then
+        return obj.PrimaryPart
+            or obj:FindFirstChildWhichIsA("BasePart", true)
+    end
+end
+
+local function addFruit(obj)
+    if tracked[obj] or not isFruit(obj) then return end
+    if not (obj:IsA("Model") or obj:IsA("BasePart")) then
+        return
+    end
+
+    local part = getPart(obj)
+    if not part then return end
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "DX_FruitESP"
+    billboard.Size = UDim2.fromOffset(220, 48)
+    billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Adornee = part
+    billboard.Enabled = true
+    billboard.Parent = gui
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.fromScale(1, 1)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(115, 255, 170)
+    label.TextStrokeTransparency = 0.2
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 13
+    label.Parent = billboard
+
+    tracked[obj] = {
+        gui = billboard,
+        label = label,
+        part = part
+    }
+end
+
+for _, obj in ipairs(workspace:GetDescendants()) do
+    addFruit(obj)
+end
+
+workspace.DescendantAdded:Connect(addFruit)
+
+workspace.DescendantRemoving:Connect(function(obj)
+    local data = tracked[obj]
+    if data then
+        data.gui:Destroy()
+        tracked[obj] = nil
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    local character = player.Character
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+
+    for obj, data in pairs(tracked) do
+        if not obj.Parent or not data.part.Parent then
+            data.gui:Destroy()
+            tracked[obj] = nil
+        else
+            data.gui.Enabled = espEnabled
+
+            local text = {}
+            if showName then
+                table.insert(text, obj.Name)
+            end
+
+            if showDistance and root then
+                local studs = (root.Position - data.part.Position).Magnitude
+                table.insert(text, string.format("%.0f studs", studs))
+            end
+
+            data.label.Text = table.concat(text, " | ")
+        end
+    end
 end)
