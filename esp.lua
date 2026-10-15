@@ -1,285 +1,476 @@
 
--- DX TAME BETA V2 | INDEPENDENT ESP CONTROLS
--- Roblox Studio - game thử nghiệm do bạn quản lý
+--[[
+    DX TAME CHEST ESP v1.0
+    Creator: HA HUU XUYEN
+    Platform: Roblox Studio
+    Features:
+      - Draggable menu and floating orb
+      - Rainbow RGB animation
+      - Transparent glass-style interface
+      - Chest ESP and distance labels
+      - Sorted chest list
+      - ESP / Distance / List toggles
+]]
 
 local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local CollectionService = game:GetService("CollectionService")
 
-local me = Players.LocalPlayer
-local pg = me:WaitForChild("PlayerGui")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
-local old = pg:FindFirstChild("DX_TAME_BETA_V2")
+local old = playerGui:FindFirstChild("DXTAME_CHEST_ESP")
 if old then old:Destroy() end
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "DX_TAME_BETA_V2"
+gui.Name = "DXTAME_CHEST_ESP"
 gui.ResetOnSpawn = false
-gui.Parent = pg
+gui.DisplayOrder = 100
+gui.Parent = playerGui
 
-local settings = {
-    Fruit = true,
-    Laser = false,
-    Player = false,
-    Mob = false,
-    Bot = false,
-}
+local function make(class, props, parent)
+    local obj = Instance.new(class)
+    for k, v in pairs(props) do
+        obj[k] = v
+    end
+    obj.Parent = parent
+    return obj
+end
 
-local function round(obj, r)
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, r)
-    c.Parent = obj
+local function round(obj, radius)
+    make("UICorner", {
+        CornerRadius = UDim.new(0, radius)
+    }, obj)
 end
 
 local function outline(obj)
-    local s = Instance.new("UIStroke")
-    s.Color = Color3.fromRGB(90, 150, 255)
-    s.Thickness = 1.5
-    s.Parent = obj
+    return make("UIStroke", {
+        Thickness = 2,
+        Color = Color3.fromRGB(0, 255, 255),
+        Transparency = 0.05
+    }, obj)
 end
 
--- Menu kính trong suốt
-local menu = Instance.new("Frame")
-menu.Name = "MainMenu"
-menu.Size = UDim2.fromOffset(285, 335)
-menu.Position = UDim2.new(0.5, -142, 0.3, 0)
-menu.BackgroundColor3 = Color3.fromRGB(15, 20, 40)
-menu.BackgroundTransparency = 0.2
-menu.BorderSizePixel = 0
-menu.Parent = gui
-round(menu, 14)
-outline(menu)
+local function label(parent, text, size, pos, textSize)
+    return make("TextLabel", {
+        Size = size,
+        Position = pos,
+        BackgroundTransparency = 1,
+        Text = text,
+        TextColor3 = Color3.new(1, 1, 1),
+        TextSize = textSize,
+        Font = Enum.Font.GothamBold,
+        TextWrapped = true
+    }, parent)
+end
 
-local header = Instance.new("TextLabel")
-header.Size = UDim2.new(1, -50, 0, 44)
-header.Position = UDim2.fromOffset(12, 0)
-header.BackgroundTransparency = 1
-header.Text = "DX TAME BETA"
-header.TextColor3 = Color3.fromRGB(120, 220, 255)
-header.Font = Enum.Font.GothamBold
-header.TextSize = 18
-header.TextXAlignment = Enum.TextXAlignment.Left
-header.Parent = menu
+local function button(parent, text, y)
+    local b = make("TextButton", {
+        Position = UDim2.fromOffset(14, y),
+        Size = UDim2.new(1, -28, 0, 38),
+        BackgroundColor3 = Color3.fromRGB(24, 39, 65),
+        BackgroundTransparency = 0.12,
+        Text = text,
+        TextColor3 = Color3.new(1, 1, 1),
+        TextSize = 13,
+        Font = Enum.Font.GothamBold
+    }, parent)
+    round(b, 9)
+    outline(b)
+    return b
+end
 
-local collapse = Instance.new("TextButton")
-collapse.Size = UDim2.fromOffset(34, 30)
-collapse.Position = UDim2.new(1, -40, 0, 7)
-collapse.Text = "—"
-collapse.TextColor3 = Color3.new(1, 1, 1)
-collapse.BackgroundColor3 = Color3.fromRGB(45, 55, 90)
-collapse.Parent = menu
-round(collapse, 8)
+-- Main menu
+local main = make("Frame", {
+    Name = "Main",
+    Size = UDim2.fromOffset(310, 365),
+    Position = UDim2.new(0.5, -155, 0.5, -182),
+    BackgroundColor3 = Color3.fromRGB(10, 18, 35),
+    BackgroundTransparency = 0.15,
+    BorderSizePixel = 0
+}, gui)
+round(main, 16)
+local mainStroke = outline(main)
 
-local floating = Instance.new("TextButton")
-floating.Name = "FloatingDX"
-floating.Size = UDim2.fromOffset(58, 58)
-floating.Position = menu.Position
-floating.Text = "DX"
-floating.Font = Enum.Font.GothamBold
-floating.TextSize = 18
-floating.TextColor3 = Color3.new(1, 1, 1)
-floating.BackgroundColor3 = Color3.fromRGB(35, 60, 145)
-floating.Visible = false
-floating.Parent = gui
-round(floating, 29)
-outline(floating)
+local header = make("Frame", {
+    Size = UDim2.new(1, 0, 0, 62),
+    BackgroundTransparency = 1
+}, main)
 
--- Kéo thả bằng chuột hoặc cảm ứng
-local function makeDraggable(obj, handle)
-    local dragging = false
+label(header, "DX TAME  ✦", UDim2.new(1, -55, 0, 30),
+    UDim2.fromOffset(14, 5), 22).TextXAlignment =
+    Enum.TextXAlignment.Left
+
+label(header, "CHEST ESP • ALL MAP", UDim2.new(1, -20, 0, 20),
+    UDim2.fromOffset(14, 35), 11).TextColor3 =
+    Color3.fromRGB(100, 220, 255)
+
+local minimize = make("TextButton", {
+    Size = UDim2.fromOffset(34, 34),
+    Position = UDim2.new(1, -44, 0, 12),
+    BackgroundColor3 = Color3.fromRGB(30, 45, 70),
+    Text = "—",
+    TextColor3 = Color3.new(1, 1, 1),
+    TextSize = 20,
+    Font = Enum.Font.GothamBold
+}, header)
+round(minimize, 17)
+
+local status = label(main, "CHEST FOUND: 0",
+    UDim2.new(1, -28, 0, 22), UDim2.fromOffset(14, 65), 12)
+status.TextXAlignment = Enum.TextXAlignment.Left
+status.TextColor3 = Color3.fromRGB(120, 255, 190)
+
+local espButton = button(main, "CHEST ESP: ON", 94)
+local distanceButton = button(main, "SHOW DISTANCE: ON", 140)
+local listButton = button(main, "CHEST LIST: ON", 186)
+local refreshButton = button(main, "REFRESH CHESTS", 232)
+
+label(main, "RELEASED BY HÀ HỮU XUYÊN",
+    UDim2.new(1, -20, 0, 30), UDim2.fromOffset(10, 300), 15)
+
+-- Chest list
+local listFrame = make("Frame", {
+    Name = "ChestList",
+    Size = UDim2.fromOffset(245, 230),
+    Position = UDim2.new(1, -260, 0.5, -115),
+    BackgroundColor3 = Color3.fromRGB(10, 18, 35),
+    BackgroundTransparency = 0.13,
+    BorderSizePixel = 0
+}, gui)
+round(listFrame, 13)
+local listStroke = outline(listFrame)
+
+local listHeader = label(listFrame, "✦ CHEST LIST",
+    UDim2.new(1, -12, 0, 35), UDim2.fromOffset(6, 2), 15)
+
+local scroll = make("ScrollingFrame", {
+    Position = UDim2.fromOffset(8, 39),
+    Size = UDim2.new(1, -16, 1, -47),
+    BackgroundTransparency = 1,
+    BorderSizePixel = 0,
+    ScrollBarThickness = 3,
+    AutomaticCanvasSize = Enum.AutomaticSize.Y,
+    CanvasSize = UDim2.new()
+}, listFrame)
+
+make("UIListLayout", {
+    Padding = UDim.new(0, 5),
+    SortOrder = Enum.SortOrder.LayoutOrder
+}, scroll)
+
+-- Minimized orb
+local orb = make("TextButton", {
+    Name = "DXOrb",
+    Size = UDim2.fromOffset(58, 58),
+    Position = UDim2.new(0, 25, 0.5, -29),
+    BackgroundColor3 = Color3.fromRGB(12, 20, 42),
+    BackgroundTransparency = 0.08,
+    Text = "DX",
+    TextColor3 = Color3.new(1, 1, 1),
+    TextSize = 21,
+    Font = Enum.Font.GothamBlack,
+    Visible = false
+}, gui)
+round(orb, 30)
+local orbStroke = outline(orb)
+
+-- Drag functionality
+local function draggable(handle, target)
+    local active = false
     local startInput, startPosition
-    local moved = false
 
     handle.InputBegan:Connect(function(input)
-        if input.UserInputType ~= Enum.UserInputType.MouseButton1
-        and input.UserInputType ~= Enum.UserInputType.Touch then
-            return
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            active = true
+            startInput = input.Position
+            startPosition = target.Position
         end
-
-        dragging = true
-        moved = false
-        startInput = input.Position
-        startPosition = obj.Position
-
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
     end)
 
     UIS.InputChanged:Connect(function(input)
-        if not dragging then return end
+        if not active then return end
 
         if input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch then
-            local d = input.Position - startInput
-            if d.Magnitude > 5 then moved = true end
-
-            obj.Position = UDim2.new(
+            or input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - startInput
+            target.Position = UDim2.new(
                 startPosition.X.Scale,
-                startPosition.X.Offset + d.X,
+                startPosition.X.Offset + delta.X,
                 startPosition.Y.Scale,
-                startPosition.Y.Offset + d.Y
+                startPosition.Y.Offset + delta.Y
             )
         end
     end)
 
-    return function() return moved end
-end
-
-makeDraggable(menu, header)
-local floatingMoved = makeDraggable(floating, floating)
-
-collapse.Activated:Connect(function()
-    floating.Position = menu.Position
-    menu.Visible = false
-    floating.Visible = true
-end)
-
-floating.Activated:Connect(function()
-    if floatingMoved() then return end
-    menu.Position = floating.Position
-    floating.Visible = false
-    menu.Visible = true
-end)
-
--- Công tắc riêng cho từng chức năng
-local rows = {}
-local order = {
-    {"Fruit", "FRUIT ESP"},
-    {"Laser", "RAINBOW LASER"},
-    {"Player", "PLAYER ESP"},
-    {"Mob", "MOB ESP"},
-    {"Bot", "NPC / BOT ESP"},
-}
-
-local function refresh(key)
-    local b = rows[key]
-    b.Text = order[({Fruit=1,Laser=2,Player=3,Mob=4,Bot=5})[key]][2]
-        .. " : " .. (settings[key] and "ON" or "OFF")
-
-    b.BackgroundColor3 = settings[key]
-        and Color3.fromRGB(32, 80, 88)
-        or Color3.fromRGB(35, 40, 65)
-end
-
-for i, item in ipairs(order) do
-    local key, title = item[1], item[2]
-
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, -24, 0, 40)
-    b.Position = UDim2.fromOffset(12, 49 + (i - 1) * 45)
-    b.BackgroundColor3 = Color3.fromRGB(32, 80, 88)
-    b.BackgroundTransparency = 0.12
-    b.TextColor3 = Color3.new(1, 1, 1)
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = 13
-    b.Parent = menu
-    round(b, 8)
-
-    rows[key] = b
-    refresh(key)
-
-    b.Activated:Connect(function()
-        settings[key] = not settings[key]
-        refresh(key)
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            active = false
+        end
     end)
 end
 
-local footer = Instance.new("TextLabel")
-footer.Size = UDim2.new(1, -20, 0, 30)
-footer.Position = UDim2.fromOffset(10, 282)
-footer.BackgroundTransparency = 1
-footer.Text = "Independent switches | Studio"
-footer.TextColor3 = Color3.fromRGB(145, 175, 220)
-footer.Font = Enum.Font.Gotham
-footer.TextSize = 11
-footer.Parent = menu
+draggable(header, main)
+draggable(orb, orb)
+draggable(listHeader, listFrame)
 
--- ESP demo: đánh dấu mục tiêu bằng Attribute DXType
--- Giá trị hỗ trợ: Fruit, Player, Mob, Bot.
+minimize.Activated:Connect(function()
+    main.Visible = false
+    listFrame.Visible = false
+    orb.Visible = true
+end)
+
+orb.Activated:Connect(function()
+    main.Visible = true
+    listFrame.Visible = true
+    orb.Visible = false
+end)
+
+-- Chest detection
+local espEnabled = true
+local distanceEnabled = true
+local listEnabled = true
 local tracked = {}
+local refreshRequested = false
 
 local function getPart(obj)
-    if obj:IsA("BasePart") then return obj end
-    if obj:IsA("Model") then
+    if obj:IsA("BasePart") then
+        return obj
+    end
+    if obj:IsA("Model") and obj.PrimaryPart then
         return obj.PrimaryPart
-            or obj:FindFirstChildWhichIsA("BasePart", true)
     end
+    return obj:FindFirstChildWhichIsA("BasePart", true)
 end
 
-local function register(obj)
-    if tracked[obj] then return end
+local function isChest(obj)
     if not (obj:IsA("Model") or obj:IsA("BasePart")) then
-        return
+        return false
     end
 
-    local kind = obj:GetAttribute("DXType")
-    if not settings[kind] then return end
+    if CollectionService:HasTag(obj, "Chest") then
+        return true
+    end
 
-    local part = getPart(obj)
-    if not part then return end
-
-    local bb = Instance.new("BillboardGui")
-    bb.Name = "DX_ESP"
-    bb.Adornee = part
-    bb.Size = UDim2.fromOffset(220, 34)
-    bb.StudsOffset = Vector3.new(0, 3, 0)
-    bb.AlwaysOnTop = true
-    bb.Parent = gui
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.fromScale(1, 1)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(120, 255, 190)
-    label.TextStrokeTransparency = 0.15
-    label.Font = Enum.Font.GothamBold
-    label.TextSize = 13
-    label.Parent = bb
-
-    tracked[obj] = {
-        kind = kind,
-        part = part,
-        bb = bb,
-        label = label,
-    }
+    return string.find(string.lower(obj.Name), "chest", 1, true)
+        ~= nil
 end
 
-local function removeTarget(obj)
-    local d = tracked[obj]
-    if not d then return end
-    d.bb:Destroy()
+local function clearEntry(obj)
+    local e = tracked[obj]
+    if not e then return end
+    if e.billboard then e.billboard:Destroy() end
+    if e.highlight then e.highlight:Destroy() end
     tracked[obj] = nil
 end
 
-for _, obj in ipairs(workspace:GetDescendants()) do
-    register(obj)
+local function createEntry(obj)
+    local part = getPart(obj)
+    if not part then return end
+
+    local billboard = make("BillboardGui", {
+        Name = "DXTAME_ChestLabel",
+        Adornee = part,
+        Size = UDim2.fromOffset(160, 42),
+        StudsOffset = Vector3.new(0, 2.5, 0),
+        AlwaysOnTop = true,
+        Enabled = espEnabled
+    }, playerGui)
+
+    local text = make("TextLabel", {
+        Size = UDim2.fromScale(1, 1),
+        BackgroundColor3 = Color3.fromRGB(10, 15, 30),
+        BackgroundTransparency = 0.2,
+        Text = obj.Name,
+        TextColor3 = Color3.new(1, 1, 1),
+        TextStrokeTransparency = 0.25,
+        TextSize = 13,
+        Font = Enum.Font.GothamBold
+    }, billboard)
+    round(text, 8)
+
+    local textStroke = outline(text)
+
+    local highlight = make("Highlight", {
+        Name = "DXTAME_ChestHighlight",
+        Adornee = obj,
+        FillTransparency = 0.8,
+        OutlineTransparency = 0,
+        Enabled = espEnabled,
+        DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    }, obj)
+
+    tracked[obj] = {
+        obj = obj,
+        part = part,
+        billboard = billboard,
+        label = text,
+        stroke = textStroke,
+        highlight = highlight
+    }
 end
 
-workspace.DescendantAdded:Connect(register)
-workspace.DescendantRemoving:Connect(removeTarget)
+local function refresh()
+    for obj in pairs(tracked) do
+        if not obj:IsDescendantOf(workspace) then
+            clearEntry(obj)
+        end
+    end
 
--- Cập nhật trạng thái và khoảng cách
-RunService.RenderStepped:Connect(function()
-    local char = me.Character
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if isChest(obj) and not tracked[obj] then
+            createEntry(obj)
+        end
+    end
+
+    for _, obj in ipairs(CollectionService:GetTagged("Chest")) do
+        if obj:IsDescendantOf(workspace) and not tracked[obj] then
+            createEntry(obj)
+        end
+    end
+
+    refreshRequested = false
+end
+
+local function updateList()
+    for _, child in ipairs(scroll:GetChildren()) do
+        if child:IsA("TextLabel") then
+            child:Destroy()
+        end
+    end
+
+    local char = player.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
+    local items = {}
 
-    for obj, d in pairs(tracked) do
-        if not obj.Parent or not d.part.Parent then
-            removeTarget(obj)
-        else
-            d.bb.Enabled = settings[d.kind]
+    if root then
+        for obj, entry in pairs(tracked) do
+            if obj:IsDescendantOf(workspace)
+                and entry.part:IsDescendantOf(workspace) then
+                table.insert(items, {
+                    entry = entry,
+                    distance = (root.Position -
+                        entry.part.Position).Magnitude
+                })
+            end
+        end
+    end
 
-            local dist = root
-                and (root.Position - d.part.Position).Magnitude
-                or 0
+    table.sort(items, function(a, b)
+        return a.distance < b.distance
+    end)
 
-            d.label.Text = string.format(
-                "%s | %.0f studs", obj.Name, dist
-            )
+    status.Text = "CHEST FOUND: " .. #items
+
+    for i, item in ipairs(items) do
+        local row = make("TextLabel", {
+            Size = UDim2.new(1, -4, 0, 30),
+            BackgroundColor3 = Color3.fromRGB(25, 40, 65),
+            BackgroundTransparency = 0.2,
+            Text = string.format("%02d  %s  •  %dm",
+                i,
+                item.entry.obj.Name,
+                math.floor(item.distance + 0.5)),
+            TextColor3 = Color3.new(1, 1, 1),
+            TextSize = 11,
+            Font = Enum.Font.GothamMedium,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            LayoutOrder = i
+        }, scroll)
+        round(row, 6)
+    end
+end
+
+espButton.Activated:Connect(function()
+    espEnabled = not espEnabled
+    espButton.Text = "CHEST ESP: " .. (espEnabled and "ON" or "OFF")
+
+    for _, e in pairs(tracked) do
+        e.billboard.Enabled = espEnabled
+        e.highlight.Enabled = espEnabled
+    end
+end)
+
+distanceButton.Activated:Connect(function()
+    distanceEnabled = not distanceEnabled
+    distanceButton.Text =
+        "SHOW DISTANCE: " .. (distanceEnabled and "ON" or "OFF")
+end)
+
+listButton.Activated:Connect(function()
+    listEnabled = not listEnabled
+    listButton.Text =
+        "CHEST LIST: " .. (listEnabled and "ON" or "OFF")
+    listFrame.Visible = listEnabled and main.Visible
+end)
+
+refreshButton.Activated:Connect(function()
+    refreshRequested = true
+    refresh()
+    updateList()
+end)
+
+-- Rainbow animation and live updates
+local hue = 0
+local listTimer = 0
+
+RunService.RenderStepped:Connect(function(dt)
+    hue = (hue + dt * 0.22) % 1
+    local rainbow = Color3.fromHSV(hue, 1, 1)
+
+    mainStroke.Color = rainbow
+    orbStroke.Color = Color3.fromHSV((hue + 0.2) % 1, 1, 1)
+    listStroke.Color = Color3.fromHSV((hue + 0.4) % 1, 1, 1)
+
+    for _, e in pairs(tracked) do
+        e.stroke.Color = rainbow
+        e.highlight.OutlineColor = rainbow
+        e.highlight.FillColor = rainbow
+
+        local char = player.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+
+        if root and e.part:IsDescendantOf(workspace) then
+            local d = (root.Position - e.part.Position).Magnitude
+            if distanceEnabled then
+                e.label.Text = string.format("%s\n%dm",
+                    e.obj.Name, math.floor(d + 0.5))
+            else
+                e.label.Text = e.obj.Name
+            end
+        end
+    end
+
+    if refreshRequested then
+        refresh()
+    end
+
+    listTimer += dt
+    if listTimer >= 1 then
+        listTimer = 0
+        if listEnabled then
+            updateList()
         end
     end
 end)
 
-print("[DX TAME BETA V2] Loaded")
+workspace.DescendantAdded:Connect(function(obj)
+    if isChest(obj) then
+        refreshRequested = true
+    end
+end)
+
+workspace.DescendantRemoving:Connect(function(obj)
+    if tracked[obj] then
+        clearEntry(obj)
+        refreshRequested = true
+    end
+end)
+
+refresh()
+updateList()
+
+print("DX TAME CHEST ESP | HÀ HỮU XUYÊN | Loaded")
